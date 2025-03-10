@@ -2,8 +2,8 @@
   # Create Chatbots Configuration Tables
 
   1. New Tables
-    - `chatbots` - Chatbot configurations
-      - `id` (uuid, primary key)
+    - `chatbots` - Chatbot configuration
+      - `id` (char(36), primary key)
       - `name` (text)
       - `model` (text)
       - `provider` (enum)
@@ -14,7 +14,7 @@
       - `welcome_message` (text)
       - `knowledge_base` (text)
       - `response_language` (enum)
-      - `temperature` (numeric)
+      - `temperature` (decimal)
       - `emoji_mode` (boolean)
       - `role` (text)
       - `principles` (text)
@@ -24,109 +24,72 @@
       - `updated_at` (timestamp)
 
     - `chatbot_access` - User access to chatbots
-      - `user_id` (uuid, foreign key)
-      - `chatbot_id` (uuid, foreign key)
+      - `user_id` (char(36), foreign key)
+      - `chatbot_id` (char(36), foreign key)
       - `granted_at` (timestamp)
       - `expires_at` (timestamp)
       - `status` (enum)
 
   2. Security
-    - Enable RLS on all tables
-    - Add policies for access control
+    - Access control should be implemented at the application level
+    - User access managed through chatbot_access table
+    - Temperature validation using CHECK constraint
 */
-
--- Create provider enum
-CREATE TYPE ai_provider AS ENUM ('openai', 'deepseek', 'other');
-
--- Create response language enum
-CREATE TYPE response_language AS ENUM ('zh-HK', 'en', 'zh-CN', 'zh-TW');
-
--- Create chatbot status enum
-CREATE TYPE chatbot_status AS ENUM ('active', 'inactive', 'maintenance');
-
--- Create access status enum
-CREATE TYPE access_status AS ENUM ('active', 'expired', 'revoked');
 
 -- Create chatbots table
 CREATE TABLE IF NOT EXISTS chatbots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id CHAR(36) PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   model VARCHAR(100) NOT NULL,
-  provider ai_provider DEFAULT 'openai',
-  daily_limit INTEGER NOT NULL DEFAULT 50,
-  max_tokens INTEGER NOT NULL DEFAULT 4000,
+  provider ENUM('openai', 'deepseek', 'other') DEFAULT 'openai',
+  daily_limit INT NOT NULL DEFAULT 50,
+  max_tokens INT NOT NULL DEFAULT 4000,
   has_file_access BOOLEAN DEFAULT false,
   system_prompt TEXT,
   welcome_message TEXT,
   knowledge_base TEXT,
-  response_language response_language DEFAULT 'zh-TW',
-  temperature NUMERIC(3,2) DEFAULT 0.7 CHECK (temperature >= 0 AND temperature <= 1),
+  response_language ENUM('zh-HK', 'en', 'zh-CN', 'zh-TW') DEFAULT 'zh-TW',
+  temperature DECIMAL(3,2) DEFAULT 0.7,
   emoji_mode BOOLEAN DEFAULT false,
   role VARCHAR(100),
   principles TEXT,
   interaction_examples TEXT,
-  status chatbot_status DEFAULT 'active',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT chk_temperature CHECK (temperature >= 0 AND temperature <= 1)
 );
 
 -- Create chatbot access table
 CREATE TABLE IF NOT EXISTS chatbot_access (
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  chatbot_id UUID REFERENCES chatbots(id) ON DELETE CASCADE,
-  granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  expires_at TIMESTAMP WITH TIME ZONE,
-  status access_status DEFAULT 'active',
-  PRIMARY KEY (user_id, chatbot_id)
+  user_id CHAR(36),
+  chatbot_id CHAR(36),
+  granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NULL,
+  status ENUM('active', 'expired', 'revoked') DEFAULT 'active',
+  PRIMARY KEY (user_id, chatbot_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (chatbot_id) REFERENCES chatbots(id) ON DELETE CASCADE
 );
 
 -- Create indexes
-CREATE INDEX idx_chatbots_status ON chatbots(status);
-CREATE INDEX idx_chatbot_access_status ON chatbot_access(status);
-CREATE INDEX idx_chatbot_access_expires_at ON chatbot_access(expires_at);
+CREATE INDEX IF NOT EXISTS idx_chatbots_status ON chatbots(status);
+CREATE INDEX IF NOT EXISTS idx_chatbot_access_status ON chatbot_access(status);
+CREATE INDEX IF NOT EXISTS idx_chatbot_access_expires_at ON chatbot_access(expires_at);
 
--- Add updated_at trigger to chatbots
-CREATE TRIGGER update_chatbots_updated_at
-    BEFORE UPDATE ON chatbots
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Drop existing trigger if exists
+DROP TRIGGER IF EXISTS before_insert_chatbots_uuid;
 
--- Add RLS policies
-ALTER TABLE chatbots ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chatbot_access ENABLE ROW LEVEL SECURITY;
+-- Add UUID generation trigger
+DELIMITER //
 
--- Users can read chatbots they have access to
-CREATE POLICY chatbots_read_access ON chatbots
-    FOR SELECT
-    TO authenticated
-    USING (EXISTS (
-        SELECT 1 FROM chatbot_access
-        WHERE chatbot_id = chatbots.id
-        AND user_id = auth.uid()
-        AND status = 'active'
-        AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-    ));
+CREATE TRIGGER before_insert_chatbots_uuid
+BEFORE INSERT ON chatbots
+FOR EACH ROW
+BEGIN
+    IF NEW.id IS NULL THEN
+        SET NEW.id = UUID();
+    END IF;
+END //
 
--- Admin policies for chatbots
-CREATE POLICY admin_manage_chatbots ON chatbots
-    FOR ALL
-    TO authenticated
-    USING (EXISTS (
-        SELECT 1 FROM users
-        WHERE id = auth.uid() AND user_type = 'admin'
-    ));
-
--- Users can read their own access records
-CREATE POLICY access_read_own ON chatbot_access
-    FOR SELECT
-    TO authenticated
-    USING (user_id = auth.uid());
-
--- Admin policies for access management
-CREATE POLICY admin_manage_access ON chatbot_access
-    FOR ALL
-    TO authenticated
-    USING (EXISTS (
-        SELECT 1 FROM users
-        WHERE id = auth.uid() AND user_type = 'admin'
-    ));
+DELIMITER ;

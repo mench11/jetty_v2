@@ -57,16 +57,54 @@ export const userOperations = {
   
   create: async (user: any) => {
     const { email, name, password_hash, user_type = 'free', status = 'active' } = user;
+    
+    // Generate a UUID for the new user
+    const uuidResult = await query('SELECT UUID() as id') as any[];
+    const id = uuidResult[0]?.id;
+    
+    console.log('Generated UUID for new user:', id);
+    
+    // Convert any undefined values to null for MySQL
+    const params = [
+      id, email, name, password_hash, user_type, status
+    ].map(param => param === undefined ? null : param);
+    
+    console.log('User parameters:', JSON.stringify(params));
+    
     const result = await query(
-      'INSERT INTO users (email, name, password_hash, user_type, status) VALUES (?, ?, ?, ?, ?)',
-      [email, name, password_hash, user_type, status]
-    );
+      'INSERT INTO users (id, email, name, password_hash, user_type, status) VALUES (?, ?, ?, ?, ?, ?)',
+      params
+    ) as any;
+    
+    // Add the generated ID to the result
+    if (result) {
+      result.insertId = id;
+    }
+    
     return result;
   },
   
   update: async (id: string, updates: any) => {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-    const values = [...Object.values(updates), id];
+    // Format the updated_at date properly for MySQL if it exists
+    const updatesClone = { ...updates };
+    
+    // If updated_at is provided, format it to MySQL-compatible format
+    if (updatesClone.updated_at) {
+      try {
+        // Convert ISO string to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+        const date = new Date(updatesClone.updated_at);
+        updatesClone.updated_at = date.toISOString().slice(0, 19).replace('T', ' ');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        // If date formatting fails, remove updated_at to let MySQL handle it
+        delete updatesClone.updated_at;
+      }
+    }
+    
+    console.log('Formatted updates:', JSON.stringify(updatesClone));
+    
+    const fields = Object.keys(updatesClone).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(updatesClone), id];
     
     const result = await query(`UPDATE users SET ${fields} WHERE id = ?`, values);
     return result;
@@ -92,23 +130,39 @@ export const chatbotOperations = {
   create: async (chatbot: any) => {
     const {
       name, model, provider = 'openai', daily_limit = 50, max_tokens = 4000,
-      has_file_access = 0, system_prompt, welcome_message, knowledge_base,
+      has_file_access = 0, system_prompt = null, welcome_message = null, knowledge_base = null,
       response_language = 'zh-TW', temperature = 0.7, emoji_mode = 0,
-      role, principles, interaction_examples, status = 'active'
+      role = null, principles = null, interaction_examples = null, status = 'active'
     } = chatbot;
+    
+    // Generate a UUID for the new chatbot
+    const uuidResult = await query('SELECT UUID() as id') as any[];
+    const id = uuidResult[0]?.id;
+    
+    console.log('Generated UUID for new chatbot:', id);
+    
+    // Convert any undefined values to null for MySQL
+    const params = [
+      id, name, model, provider, daily_limit, max_tokens, has_file_access,
+      system_prompt, welcome_message, knowledge_base, response_language,
+      temperature, emoji_mode, role, principles, interaction_examples, status
+    ].map(param => param === undefined ? null : param);
+    
+    console.log('Chatbot parameters:', JSON.stringify(params));
     
     const result = await query(
       `INSERT INTO chatbots (
-        name, model, provider, daily_limit, max_tokens, has_file_access,
+        id, name, model, provider, daily_limit, max_tokens, has_file_access,
         system_prompt, welcome_message, knowledge_base, response_language,
         temperature, emoji_mode, role, principles, interaction_examples, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        name, model, provider, daily_limit, max_tokens, has_file_access,
-        system_prompt, welcome_message, knowledge_base, response_language,
-        temperature, emoji_mode, role, principles, interaction_examples, status
-      ]
-    );
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params
+    ) as any;
+    
+    // Add the generated ID to the result
+    if (result) {
+      result.insertId = id;
+    }
     
     return result;
   },

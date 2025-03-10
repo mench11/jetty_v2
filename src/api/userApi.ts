@@ -67,76 +67,72 @@ export const userApi = {
   
   create: async (userData: any) => {
     try {
+      console.log('Creating user with data:', JSON.stringify(userData));
+      
       // Direct API call to create a user
       const response = await fetchApi<any>(API_ENDPOINTS.USERS, {
         method: 'POST',
         body: JSON.stringify(userData),
       });
       
-      // If the response doesn't include the full user data, fetch it
-      if (!response.id && response.insertId) {
-        return await fetchApi<any>(`${API_ENDPOINTS.USERS}/${response.insertId}`);
-      }
+      console.log('API response for user creation:', JSON.stringify(response));
       
-      return response;
-    } catch (error) {
+      // If the response doesn't include the full user data, fetch it
+      if (response && response.id) {
+        // Response already contains the user data
+        return response;
+      } else if (response && response.message && response.id) {
+        // Response contains a success message and ID
+        return await fetchApi<any>(`${API_ENDPOINTS.USERS}/${response.id}`);
+      } else if (response && response.message && response.insertId) {
+        // Response contains a success message and insertId
+        return await fetchApi<any>(`${API_ENDPOINTS.USERS}/${response.insertId}`);
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+    } catch (error: any) {
       console.error('Error creating user via API:', error);
-      // Only fall back to mock data if absolutely necessary
-      console.log('Falling back to mock user creation');
-      const newUser = {
-        ...userData,
-        id: `user-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        last_login: null,
-        status: 'active'
-      };
-      mockUsers.push(newUser);
-      return newUser;
+      
+      // Throw a more descriptive error
+      throw new Error(`Failed to create user: ${error.message || 'Unknown error'}`);
     }
   },
   
   update: async (id: string, userData: any) => {
     try {
+      console.log(`Updating user ${id} with data:`, JSON.stringify(userData));
+      
       // Direct API call to update a user
-      await fetchApi<any>(`${API_ENDPOINTS.USERS}/${id}`, {
+      const updateResponse = await fetchApi<any>(`${API_ENDPOINTS.USERS}/${id}`, {
         method: 'PUT',
         body: JSON.stringify(userData),
       });
       
+      console.log('API response for user update:', JSON.stringify(updateResponse));
+      
+      // Wait a moment to ensure the update is processed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Fetch the updated user to return the complete data
-      return await fetchApi<any>(`${API_ENDPOINTS.USERS}/${id}`);
-    } catch (error) {
-      console.error(`Error updating user ${id} via API:`, error);
-      // Only fall back to mock data if absolutely necessary
-      console.log(`Falling back to mock user update for ID: ${id}`);
-      
-      // For mock data, we'll accept any ID format to avoid hardcoded ID issues
-      let index = mockUsers.findIndex(user => user.id === id);
-      
-      // If user not found in mock data, create a new one with this ID
-      if (index === -1) {
-        const newUser = {
+      try {
+        const updatedUser = await fetchApi<any>(`${API_ENDPOINTS.USERS}/${id}`);
+        console.log('Retrieved updated user:', JSON.stringify(updatedUser));
+        return updatedUser;
+      } catch (fetchError) {
+        console.error(`Error fetching updated user ${id}:`, fetchError);
+        
+        // If we can't fetch the updated user, return a constructed one with the updated data
+        return {
           ...userData,
           id: id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_login: null,
-          status: 'active'
+          updated_at: new Date().toISOString()
         };
-        mockUsers.push(newUser);
-        return newUser;
       }
+    } catch (error: any) {
+      console.error(`Error updating user ${id} via API:`, error);
       
-      // Update existing user
-      const updatedUser = {
-        ...mockUsers[index],
-        ...userData,
-        id: id, // Ensure ID doesn't change
-        updated_at: new Date().toISOString()
-      };
-      mockUsers[index] = updatedUser;
-      return updatedUser;
+      // Throw a more descriptive error
+      throw new Error(`Failed to update user: ${error.message || 'Unknown error'}`);
     }
   },
   

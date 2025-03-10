@@ -103,10 +103,15 @@ const UserAccessManagementPage: React.FC = () => {
   }, [user]);
 
   // Filter users based on search term
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    // Add null checks to prevent errors with undefined properties
+    const userName = user?.name || '';
+    const userEmail = user?.email || '';
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    return userName.toLowerCase().includes(searchTermLower) ||
+           userEmail.toLowerCase().includes(searchTermLower);
+  });
 
   // Handle create user
   const handleCreateUser = async () => {
@@ -196,15 +201,16 @@ const UserAccessManagementPage: React.FC = () => {
       setError(null); // Clear any previous errors
       setIsLoading(true); // Show loading state
       
-      // Prepare user data for database update
+      // Prepare user data for database update - only include fields that exist in the database
       const updatedUser = {
         name: formData.name,
         email: formData.email,
-        user_type: formData.user_type,
-        access_expiry: formData.access_expiry || null,
-        chatbots_access: formData.chatbots_access,
-        updated_at: new Date().toISOString()
+        user_type: formData.user_type
+        // Let the database handle the updated_at timestamp automatically
+        // Don't include fields that don't exist in the database schema
       };
+      
+      console.log('Updating user with data:', JSON.stringify(updatedUser));
       
       // Call API to update user
       const result = await userApi.update(currentUser.id, updatedUser);
@@ -237,12 +243,14 @@ const UserAccessManagementPage: React.FC = () => {
   const handleEditClick = (user: any) => {
     setCurrentUser(user);
     setFormData({
-      name: user.name,
-      email: user.email,
-      user_type: user.user_type,
-      access_expiry: user.access_expiry ? new Date(user.access_expiry).toISOString().split('T')[0] : '',
-      chatbots_access: user.chatbots_access || []
+      name: user.name || '',
+      email: user.email || '',
+      user_type: user.user_type || 'free',
+      // Initialize with empty values for UI fields that don't exist in the database
+      access_expiry: '',
+      chatbots_access: []
     });
+    console.log('Editing user:', JSON.stringify(user));
     setIsEditModalOpen(true);
   };
   

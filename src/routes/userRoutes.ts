@@ -40,12 +40,30 @@ router.get('/:id', async (req: Request<UserIdParam>, res: Response) => {
 });
 
 // Create user
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request<{}, any, any>, res: Response) => {
   try {
+    console.log('POST /api/users - Request body:', JSON.stringify(req.body));
+    
+    // Validate required fields
+    const { email, name, password_hash } = req.body;
+    if (!email || !name || !password_hash) {
+      return res.status(400).json({ 
+        message: 'Missing required fields', 
+        requiredFields: ['email', 'name', 'password_hash'],
+        receivedFields: Object.keys(req.body)
+      });
+    }
+    
     const result = await db.users.create(req.body) as DbResult;
+    console.log('POST /api/users - Database result:', JSON.stringify(result));
     res.status(201).json({ message: 'User created successfully', id: result.insertId });
   } catch (error: any) {
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    console.error('POST /api/users - Error:', error);
+    res.status(500).json({ 
+      message: 'Error creating user', 
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 

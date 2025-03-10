@@ -40,12 +40,30 @@ router.get('/:id', async (req: Request<ChatbotIdParam>, res: Response) => {
 });
 
 // Create chatbot
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request<{}, any, any>, res: Response) => {
   try {
+    console.log('POST /api/chatbots - Request body:', JSON.stringify(req.body));
+    
+    // Validate required fields
+    const { name, model } = req.body;
+    if (!name || !model) {
+      return res.status(400).json({ 
+        message: 'Missing required fields', 
+        requiredFields: ['name', 'model'],
+        receivedFields: Object.keys(req.body)
+      });
+    }
+    
     const result = await db.chatbots.create(req.body) as DbResult;
+    console.log('POST /api/chatbots - Database result:', JSON.stringify(result));
     res.status(201).json({ message: 'Chatbot created successfully', id: result.insertId });
   } catch (error: any) {
-    res.status(500).json({ message: 'Error creating chatbot', error: error.message });
+    console.error('POST /api/chatbots - Error:', error);
+    res.status(500).json({ 
+      message: 'Error creating chatbot', 
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 

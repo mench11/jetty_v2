@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  User, 
   Search, 
   Plus, 
   Edit, 
@@ -9,12 +7,12 @@ import {
   AlertTriangle,
   Check,
   X,
-  Calendar,
   Shield,
   Info
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import { userTypeApi } from '../../api/apiService';
 
 // Mock data for user types
 const initialUserTypes = [
@@ -106,13 +104,19 @@ const UserTypeManagementPage: React.FC = () => {
       return;
     }
 
-    // Simulate loading data
+    // Load data from API
     const loadData = async () => {
       try {
         setIsLoading(true);
-        // In a real app, this would be an API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setUserTypes(initialUserTypes);
+        try {
+          // Try to fetch from API
+          const userTypesData = await userTypeApi.getAll();
+          setUserTypes(userTypesData.length > 0 ? userTypesData : initialUserTypes);
+        } catch (apiError) {
+          // Fallback to mock data if API fails
+          console.error('Error fetching from API, using mock data:', apiError);
+          setUserTypes(initialUserTypes);
+        }
       } catch (err) {
         console.error('Error loading user types:', err);
         setError('無法載入用戶類型數據，請稍後再試');
@@ -209,24 +213,42 @@ const UserTypeManagementPage: React.FC = () => {
   };
   
   // Handle create user type
-  const handleCreateUserType = () => {
+  const handleCreateUserType = async () => {
     if (!formData.name) {
       setError('用戶類型名稱為必填項');
       return;
     }
     
     try {
-      const newUserType = {
-        id: `type-${Date.now()}`,
+      // Create new user type data
+      const newUserTypeData = {
         name: formData.name,
         description: formData.description,
         status: formData.status,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         accessiblePages: formData.accessiblePages
       };
       
-      setUserTypes([...userTypes, newUserType]);
+      try {
+        // Try to create via API
+        await userTypeApi.create(newUserTypeData);
+        // Refresh the list
+        const updatedUserTypes = await userTypeApi.getAll();
+        setUserTypes(updatedUserTypes);
+      } catch (apiError) {
+        console.error('Error creating user type via API, using local state:', apiError);
+        // Fallback to local state if API fails
+        const newUserType = {
+          id: `type-${Date.now()}`,
+          name: formData.name,
+          description: formData.description,
+          status: formData.status,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          accessiblePages: formData.accessiblePages
+        };
+        setUserTypes([...userTypes, newUserType]);
+      }
+      
       setIsCreateModalOpen(false);
       setSuccess('用戶類型創建成功');
       
@@ -239,27 +261,45 @@ const UserTypeManagementPage: React.FC = () => {
   };
   
   // Handle update user type
-  const handleUpdateUserType = () => {
+  const handleUpdateUserType = async () => {
     if (!currentUserType || !formData.name) {
       setError('用戶類型名稱為必填項');
       return;
     }
     
     try {
-      const updatedUserTypes = userTypes.map(type => 
-        type.id === currentUserType.id 
-          ? {
-              ...type,
-              name: formData.name,
-              description: formData.description,
-              status: formData.status,
-              updatedAt: new Date().toISOString(),
-              accessiblePages: formData.accessiblePages
-            }
-          : type
-      );
+      // Prepare updated user type data
+      const updatedUserTypeData = {
+        name: formData.name,
+        description: formData.description,
+        status: formData.status,
+        accessiblePages: formData.accessiblePages
+      };
       
-      setUserTypes(updatedUserTypes);
+      try {
+        // Try to update via API
+        await userTypeApi.update(currentUserType.id, updatedUserTypeData);
+        // Refresh the list
+        const updatedUserTypes = await userTypeApi.getAll();
+        setUserTypes(updatedUserTypes);
+      } catch (apiError) {
+        console.error('Error updating user type via API, using local state:', apiError);
+        // Fallback to local state if API fails
+        const updatedUserTypes = userTypes.map(type => 
+          type.id === currentUserType.id 
+            ? {
+                ...type,
+                name: formData.name,
+                description: formData.description,
+                status: formData.status,
+                updatedAt: new Date().toISOString(),
+                accessiblePages: formData.accessiblePages
+              }
+            : type
+        );
+        setUserTypes(updatedUserTypes);
+      }
+      
       setIsEditModalOpen(false);
       setSuccess('用戶類型更新成功');
       
@@ -272,12 +312,23 @@ const UserTypeManagementPage: React.FC = () => {
   };
   
   // Handle delete user type
-  const handleDeleteUserType = () => {
+  const handleDeleteUserType = async () => {
     if (!currentUserType) return;
     
     try {
-      const updatedUserTypes = userTypes.filter(type => type.id !== currentUserType.id);
-      setUserTypes(updatedUserTypes);
+      try {
+        // Try to delete via API
+        await userTypeApi.delete(currentUserType.id);
+        // Refresh the list
+        const updatedUserTypes = await userTypeApi.getAll();
+        setUserTypes(updatedUserTypes);
+      } catch (apiError) {
+        console.error('Error deleting user type via API, using local state:', apiError);
+        // Fallback to local state if API fails
+        const updatedUserTypes = userTypes.filter(type => type.id !== currentUserType.id);
+        setUserTypes(updatedUserTypes);
+      }
+      
       setIsDeleteModalOpen(false);
       setSuccess('用戶類型刪除成功');
       

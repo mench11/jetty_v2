@@ -215,11 +215,11 @@ const UserAccessManagementPage: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {chatbots.map(chatbot => (
                         <div key={chatbot.id} className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                          user.chatbots_access.includes(chatbot.id)
+                          user.chatbots_access && Array.isArray(user.chatbots_access) && user.chatbots_access.includes(chatbot.id)
                             ? 'bg-indigo-100 text-indigo-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {user.chatbots_access.includes(chatbot.id) ? (
+                          {user.chatbots_access && Array.isArray(user.chatbots_access) && user.chatbots_access.includes(chatbot.id) ? (
                             <Check className="w-3 h-3 mr-1" />
                           ) : (
                             <X className="w-3 h-3 mr-1" />

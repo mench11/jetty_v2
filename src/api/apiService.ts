@@ -109,6 +109,23 @@ export const apiTokenApi = {
   }),
 };
 
+// User Type API
+export const userTypeApi = {
+  getAll: () => fetchApi<any[]>('/api/user-types'),
+  getById: (id: string) => fetchApi<any>(`/api/user-types/${id}`),
+  create: (userTypeData: any) => fetchApi<any>('/api/user-types', {
+    method: 'POST',
+    body: JSON.stringify(userTypeData),
+  }),
+  update: (id: string, userTypeData: any) => fetchApi<any>(`/api/user-types/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(userTypeData),
+  }),
+  delete: (id: string) => fetchApi<void>(`/api/user-types/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
 // For backward compatibility with existing code
 export const apiService = {
   users: userApi,
@@ -116,6 +133,7 @@ export const apiService = {
   chatSessions: chatSessionApi,
   chatMessages: chatMessageApi,
   apiTokens: apiTokenApi,
+  userTypes: userTypeApi
 };
 
 export default apiService;

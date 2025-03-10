@@ -76,8 +76,8 @@ Execute the following SQL files in order through phpMyAdmin or MySQL CLI:
 
 ### 4. Database User Setup
 ```sql
-CREATE USER 'ai_education_user'@'localhost' IDENTIFIED BY 'your_strong_password';
-GRANT ALL PRIVILEGES ON ai_education_platform.* TO 'ai_education_user'@'localhost';
+CREATE USER 'jetty_ai'@'localhost' IDENTIFIED BY 'your_strong_password';
+GRANT ALL PRIVILEGES ON ai_education_platform.* TO 'jetty_ai'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -240,7 +240,7 @@ NODE_ENV=production
 
 # Database
 DB_HOST=localhost
-DB_USER=ai_education_user
+DB_USER=jetty_ai
 DB_PASSWORD=your_strong_password
 DB_NAME=ai_education_platform
 

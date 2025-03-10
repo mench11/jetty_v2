@@ -157,8 +157,8 @@ After successful database setup:
 
 1. Create application user:
 ```sql
-CREATE USER 'ai_education_user'@'localhost' IDENTIFIED BY 'your_strong_password';
-GRANT SELECT, INSERT, UPDATE, DELETE ON ai_education_platform.* TO 'ai_education_user'@'localhost';
+CREATE USER 'jetty_ai'@'localhost' IDENTIFIED BY 'your_strong_password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON ai_education_platform.* TO 'jetty_ai'@'localhost';
 FLUSH PRIVILEGES;
 ```
 

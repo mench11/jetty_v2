@@ -31,10 +31,15 @@ const testConnection = async () => {
 // Generic query function
 const query = async (sql: string, params: any[] = []) => {
   try {
+    console.log('Executing SQL:', sql);
+    console.log('With parameters:', JSON.stringify(params));
     const [results] = await pool.execute(sql, params);
+    console.log('Query results:', JSON.stringify(results));
     return results;
   } catch (error) {
     console.error('Query error:', error);
+    console.error('Failed SQL:', sql);
+    console.error('Failed parameters:', JSON.stringify(params));
     throw error;
   }
 };
@@ -211,10 +216,21 @@ export const apiTokenOperations = {
   create: async (token: any) => {
     const { name, value, provider, status = 'active', user_id = null } = token;
     
+    // Generate a UUID for the new token
+    const uuidResult = await query('SELECT UUID() as id') as any[];
+    const id = uuidResult[0]?.id;
+    
+    console.log('Generated UUID for new token:', id);
+    
     const result = await query(
-      'INSERT INTO api_tokens (name, value, provider, status, user_id) VALUES (?, ?, ?, ?, ?)',
-      [name, value, provider, status, user_id]
-    );
+      'INSERT INTO api_tokens (id, name, value, provider, status, user_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, name, value, provider, status, user_id]
+    ) as any;
+    
+    // Add the generated ID to the result
+    if (result) {
+      result.insertId = id;
+    }
     
     return result;
   },

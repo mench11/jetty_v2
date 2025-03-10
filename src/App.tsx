@@ -1,3 +1,4 @@
+// React is imported for JSX transformation
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
@@ -17,6 +18,7 @@ import ExamGeneratorPage from './pages/ExamGeneratorPage';
 import QuestionDatabasePage from './pages/QuestionDatabasePage';
 import TokenManagementPage from './pages/TokenManagementPage';
 import ChatHistoryPage from './pages/ChatHistoryPage';
+import DatabaseTestPage from './pages/DatabaseTestPage';
 
 function App() {
   return (
@@ -42,6 +44,9 @@ function App() {
             <Route path="/admin/chatbots/:id" element={<ChatbotFormPage />} />
             <Route path="/admin/users" element={<UserAccessManagementPage />} />
             <Route path="/admin/user-types" element={<UserTypeManagementPage />} />
+            
+            {/* Test Routes */}
+            <Route path="/database-test" element={<DatabaseTestPage />} />
           </Routes>
         </Layout>
       </Router>

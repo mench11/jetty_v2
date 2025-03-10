@@ -9,52 +9,37 @@ import {
   AlertTriangle,
   Calendar,
   Check,
-  X
+  X,
+  Save
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { chatbotApi, userApi } from '../../api/apiService';
+import { chatbotApi, userApi, userTypeApi } from '../../api/apiService';
 
 const UserAccessManagementPage: React.FC = () => {
   const { user } = useAppContext();
   const [users, setUsers] = useState<any[]>([]);
   const [chatbots, setChatbots] = useState<any[]>([]);
+  const [userTypes, setUserTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
-  // Mock users for demonstration
-  const mockUsers = [
-    {
-      id: 'user-1',
-      name: '張三',
-      email: 'zhang@example.com',
-      user_type: 'premium',
-      access_expiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: '2023-01-01T00:00:00Z',
-      last_active: '2023-06-15T00:00:00Z',
-      chatbots_access: ['chatbot-1', 'chatbot-2']
-    },
-    {
-      id: 'user-2',
-      name: '李四',
-      email: 'li@example.com',
-      user_type: 'free',
-      access_expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: '2023-02-15T00:00:00Z',
-      last_active: '2023-06-10T00:00:00Z',
-      chatbots_access: ['chatbot-1']
-    },
-    {
-      id: 'user-3',
-      name: '王五',
-      email: 'wang@example.com',
-      user_type: 'admin',
-      access_expiry: null,
-      created_at: '2023-01-10T00:00:00Z',
-      last_active: '2023-06-20T00:00:00Z',
-      chatbots_access: ['chatbot-1', 'chatbot-2']
-    }
-  ];
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Form data
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    user_type: 'free',
+    access_expiry: '',
+    chatbots_access: [] as string[]
+  });
+  
+  // We no longer need mock users here as they're now in the API service
 
   useEffect(() => {
     // Check if user is admin
@@ -66,22 +51,49 @@ const UserAccessManagementPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        setError(null); // Clear any previous errors
         
-        // Fetch chatbots
-        const chatbotsData = await chatbotApi.getAll();
-        setChatbots(chatbotsData);
+        // Fetch data in parallel for better performance
+        const [chatbotsData, userTypesData, usersData] = await Promise.allSettled([
+          chatbotApi.getAll(),
+          userTypeApi.getAll(),
+          userApi.getAll()
+        ]);
         
-        // Fetch users from the API
-        try {
-          const usersData = await userApi.getAll();
-          setUsers(usersData.length > 0 ? usersData : mockUsers); // Fallback to mock data if API returns empty
-        } catch (error) {
-          console.error('Error fetching users, using mock data:', error);
-          setUsers(mockUsers);
+        // Handle chatbots data
+        if (chatbotsData.status === 'fulfilled') {
+          setChatbots(chatbotsData.value);
+        } else {
+          console.error('Error fetching chatbots:', chatbotsData.reason);
+          // Use empty array if fetch fails
+          setChatbots([]);
+        }
+        
+        // Handle user types data
+        if (userTypesData.status === 'fulfilled') {
+          setUserTypes(userTypesData.value);
+        } else {
+          console.error('Error fetching user types:', userTypesData.reason);
+          // Set default user types if fetch fails
+          setUserTypes([
+            { id: 'admin', name: '管理員' },
+            { id: 'premium', name: '高級會員' },
+            { id: 'free', name: '免費用戶' }
+          ]);
+        }
+        
+        // Handle users data
+        if (usersData.status === 'fulfilled') {
+          setUsers(usersData.value);
+          console.log('Successfully fetched users data from database');
+        } else {
+          console.error('Error fetching users:', usersData.reason);
+          setError('無法載入用戶數據，請稍後再試');
+          setUsers([]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('無法載入數據，請稍後再試');
+        console.error('Error in fetchData:', err);
+        setError('載入數據時發生錯誤，請稍後再試');
       } finally {
         setIsLoading(false);
       }
@@ -96,15 +108,204 @@ const UserAccessManagementPage: React.FC = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Handle create user
+  const handleCreateUser = async () => {
+    // Validate form data
+    if (!formData.name || !formData.email) {
+      setError('用戶名稱和郵箱為必填項');
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('請輸入有效的電子郵箱地址');
+      return;
+    }
+    
+    try {
+      setError(null); // Clear any previous errors
+      setIsLoading(true); // Show loading state
+      
+      // Prepare user data for database
+      const newUser = {
+        name: formData.name,
+        email: formData.email,
+        user_type: formData.user_type,
+        password_hash: '$2a$10$dummyhashforzhang', // Default password hash
+        access_expiry: formData.access_expiry || null,
+        chatbots_access: formData.chatbots_access,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_login: null
+      };
+      
+      // Call API to create user
+      const createdUser = await userApi.create(newUser);
+      
+      if (!createdUser || !createdUser.id) {
+        throw new Error('創建用戶失敗，伺服器未返回有效數據');
+      }
+      
+      // Update users list with the returned data from API
+      setUsers([...users, createdUser]);
+      setIsCreateModalOpen(false);
+      setSuccess('用戶創建成功');
+      
+      // Reset form data
+      setFormData({
+        name: '',
+        email: '',
+        user_type: 'free',
+        access_expiry: '',
+        chatbots_access: []
+      });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      console.error('Error creating user:', err);
+      // Provide more specific error messages based on the error
+      if (err.message && err.message.includes('duplicate')) {
+        setError('該電子郵箱已被使用，請使用其他郵箱');
+      } else {
+        setError(`創建用戶時發生錯誤: ${err.message || '請稍後再試'}`);
+      }
+    } finally {
+      setIsLoading(false); // Hide loading state
+    }
+  };
+  
+  // Handle update user
+  const handleUpdateUser = async () => {
+    // Validate form data
+    if (!currentUser || !formData.name || !formData.email) {
+      setError('用戶名稱和郵箱為必填項');
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('請輸入有效的電子郵箱地址');
+      return;
+    }
+    
+    try {
+      setError(null); // Clear any previous errors
+      setIsLoading(true); // Show loading state
+      
+      // Prepare user data for database update
+      const updatedUser = {
+        name: formData.name,
+        email: formData.email,
+        user_type: formData.user_type,
+        access_expiry: formData.access_expiry || null,
+        chatbots_access: formData.chatbots_access,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Call API to update user
+      const result = await userApi.update(currentUser.id, updatedUser);
+      
+      if (!result) {
+        throw new Error('更新用戶失敗，伺服器未返回有效數據');
+      }
+      
+      // Update users list with the returned data from API
+      setUsers(users.map(u => u.id === currentUser.id ? result : u));
+      setIsEditModalOpen(false);
+      setSuccess('用戶更新成功');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      console.error('Error updating user:', err);
+      // Provide more specific error messages based on the error
+      if (err.message && err.message.includes('duplicate')) {
+        setError('該電子郵箱已被其他用戶使用，請使用其他郵箱');
+      } else {
+        setError(`更新用戶時發生錯誤: ${err.message || '請稍後再試'}`);
+      }
+    } finally {
+      setIsLoading(false); // Hide loading state
+    }
+  };
+  
+  // Handle edit button click
+  const handleEditClick = (user: any) => {
+    setCurrentUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      user_type: user.user_type,
+      access_expiry: user.access_expiry ? new Date(user.access_expiry).toISOString().split('T')[0] : '',
+      chatbots_access: user.chatbots_access || []
+    });
+    setIsEditModalOpen(true);
+  };
+  
+  // Handle add button click
+  const handleAddClick = () => {
+    setFormData({
+      name: '',
+      email: '',
+      user_type: 'free',
+      access_expiry: '',
+      chatbots_access: []
+    });
+    setIsCreateModalOpen(true);
+  };
+  
+  // Handle checkbox change for chatbot access
+  const handleChatbotAccessChange = (chatbotId: string) => {
+    setFormData(prev => {
+      const chatbots_access = [...prev.chatbots_access];
+      if (chatbots_access.includes(chatbotId)) {
+        return {
+          ...prev,
+          chatbots_access: chatbots_access.filter(id => id !== chatbotId)
+        };
+      } else {
+        return {
+          ...prev,
+          chatbots_access: [...chatbots_access, chatbotId]
+        };
+      }
+    });
+  };
+  
   const handleDeleteUser = async (id: string, name: string) => {
     if (confirm(`確定要刪除用戶「${name}」嗎？此操作無法撤銷。`)) {
       try {
+        setError(null); // Clear any previous errors
+        setIsLoading(true); // Show loading state
+        
         // Call the API to delete the user
-        await userApi.delete(id);
-        setUsers(users.filter(user => user.id !== id));
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        setError('刪除用戶時發生錯誤，請稍後再試');
+        const result = await userApi.delete(id);
+        
+        if (result && result.success) {
+          setUsers(users.filter(user => user.id !== id));
+          setSuccess('用戶刪除成功');
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => setSuccess(null), 3000);
+        } else {
+          throw new Error('刪除操作未返回成功狀態');
+        }
+      } catch (err: any) {
+        console.error('Error deleting user:', err);
+        // Provide more specific error messages
+        if (err.message && err.message.includes('foreign key')) {
+          setError('無法刪除此用戶，因為有關聯的資料依賴於它');
+        } else if (err.message && err.message.includes('permission')) {
+          setError('您沒有權限刪除此用戶');
+        } else {
+          setError(`刪除用戶時發生錯誤: ${err.message || '請稍後再試'}`);
+        }
+      } finally {
+        setIsLoading(false); // Hide loading state
       }
     }
   };
@@ -119,6 +320,7 @@ const UserAccessManagementPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">用戶訪問管理</h1>
         <button
+          onClick={handleAddClick}
           className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
         >
           <Plus className="w-5 h-5 mr-2" />
@@ -130,6 +332,13 @@ const UserAccessManagementPage: React.FC = () => {
         <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md flex items-center">
           <AlertTriangle className="w-5 h-5 mr-2" />
           {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md flex items-center">
+          <Check className="w-5 h-5 mr-2" />
+          {success}
         </div>
       )}
 
@@ -232,6 +441,7 @@ const UserAccessManagementPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
+                        onClick={() => handleEditClick(user)}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         <Edit className="w-5 h-5" />
@@ -272,6 +482,208 @@ const UserAccessManagementPage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Create User Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">新增用戶</h2>
+              <button 
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">用戶名稱</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="輸入用戶名稱"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">電子郵箱</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="輸入電子郵箱"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">用戶類型</label>
+                <select
+                  value={formData.user_type}
+                  onChange={(e) => setFormData({...formData, user_type: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {userTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">訪問有效期</label>
+                <input
+                  type="date"
+                  value={formData.access_expiry}
+                  onChange={(e) => setFormData({...formData, access_expiry: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">留空表示永久訪問權限</p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">可訪問的聊天機器人</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {chatbots.map(chatbot => (
+                  <div key={chatbot.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`create-chatbot-${chatbot.id}`}
+                      checked={formData.chatbots_access.includes(chatbot.id)}
+                      onChange={() => handleChatbotAccessChange(chatbot.id)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor={`create-chatbot-${chatbot.id}`} className="ml-2 text-sm text-gray-700">
+                      {chatbot.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                創建用戶
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit User Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">編輯用戶</h2>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">用戶名稱</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="輸入用戶名稱"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">電子郵箱</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="輸入電子郵箱"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">用戶類型</label>
+                <select
+                  value={formData.user_type}
+                  onChange={(e) => setFormData({...formData, user_type: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {userTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">訪問有效期</label>
+                <input
+                  type="date"
+                  value={formData.access_expiry}
+                  onChange={(e) => setFormData({...formData, access_expiry: e.target.value})}
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">留空表示永久訪問權限</p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">可訪問的聊天機器人</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {chatbots.map(chatbot => (
+                  <div key={chatbot.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`edit-chatbot-${chatbot.id}`}
+                      checked={formData.chatbots_access.includes(chatbot.id)}
+                      onChange={() => handleChatbotAccessChange(chatbot.id)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor={`edit-chatbot-${chatbot.id}`} className="ml-2 text-sm text-gray-700">
+                      {chatbot.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleUpdateUser}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                更新用戶
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -40,12 +40,30 @@ router.get('/:id', async (req: Request<TokenIdParam>, res: Response) => {
 });
 
 // Create API token
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: Request<{}, any, any>, res: Response) => {
   try {
+    console.log('POST /api/tokens - Request body:', JSON.stringify(req.body));
+    
+    // Validate required fields
+    const { name, value, provider } = req.body;
+    if (!name || !value || !provider) {
+      return res.status(400).json({ 
+        message: 'Missing required fields', 
+        requiredFields: ['name', 'value', 'provider'],
+        receivedFields: Object.keys(req.body)
+      });
+    }
+    
     const result = await db.apiTokens.create(req.body) as DbResult;
+    console.log('POST /api/tokens - Database result:', JSON.stringify(result));
     res.status(201).json({ message: 'API token created successfully', id: result.insertId });
   } catch (error: any) {
-    res.status(500).json({ message: 'Error creating API token', error: error.message });
+    console.error('POST /api/tokens - Error:', error);
+    res.status(500).json({ 
+      message: 'Error creating API token', 
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 

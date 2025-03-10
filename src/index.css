@@ -1,4 +1,21 @@
-/* Tailwind Directives */
+/*
+ * Tailwind CSS Configuration
+ *
+ * IMPORTANT NOTE FOR DEVELOPERS:
+ * The @tailwind directives below are valid CSS when processed by PostCSS with Tailwind CSS.
+ * Your IDE may show warnings about these directives, but they can be safely ignored.
+ * These directives are required for Tailwind CSS to work properly.
+ *
+ * For more information, see: https://tailwindcss.com/docs/functions-and-directives
+ */
+
+/* Tailwind Base - Injects Tailwind's base styles and any base styles registered by plugins */
 @tailwind base;
+
+/* Tailwind Components - Injects Tailwind's component classes and any component classes registered by plugins */
 @tailwind components;
+
+/* Tailwind Utilities - Injects Tailwind's utility classes and any utility classes registered by plugins */
 @tailwind utilities;
+
+/* Add any global custom styles below */

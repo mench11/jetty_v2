@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import db from './src/api/db.js';
+import db from './src/api/db.ts';
 
 // Load environment variables
 dotenv.config();

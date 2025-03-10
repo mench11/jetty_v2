@@ -1,130 +1,20 @@
 /**
  * API Service for communicating with the backend
+ * This file exports all API services and provides backward compatibility
  */
 
-const API_BASE_URL = 'http://localhost:3000';
+// Import API services from their respective files
+import { API_ENDPOINTS } from './apiBase';
+import { userApi } from './userApi';
+import { userTypeApi } from './userTypeApi';
+import { chatbotApi } from './chatbotApi';
+import { chatSessionApi } from './chatSessionApi';
+import { chatMessageApi } from './chatMessageApi';
+import { apiTokenApi } from './apiTokenApi';
 
-// Generic fetch function with error handling
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API error: ${response.status}`);
-    }
 
-    return await response.json();
-  } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
-    throw error;
-  }
-}
 
-// User API
-export const userApi = {
-  getAll: () => fetchApi<any[]>('/api/users'),
-  getById: (id: string) => fetchApi<any>(`/api/users/${id}`),
-  create: (userData: any) => fetchApi<any>('/api/users', {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  }),
-  update: (id: string, userData: any) => fetchApi<any>(`/api/users/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(userData),
-  }),
-  delete: (id: string) => fetchApi<void>(`/api/users/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// Chatbot API
-export const chatbotApi = {
-  getAll: () => fetchApi<any[]>('/api/chatbots'),
-  getById: (id: string) => fetchApi<any>(`/api/chatbots/${id}`),
-  create: (chatbotData: any) => fetchApi<any>('/api/chatbots', {
-    method: 'POST',
-    body: JSON.stringify(chatbotData),
-  }),
-  update: (id: string, chatbotData: any) => fetchApi<any>(`/api/chatbots/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(chatbotData),
-  }),
-  delete: (id: string) => fetchApi<void>(`/api/chatbots/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// Chat Session API
-export const chatSessionApi = {
-  getAll: (userId?: string) => fetchApi<any[]>(userId ? `/api/chat-sessions?userId=${userId}` : '/api/chat-sessions'),
-  getById: (id: string) => fetchApi<any>(`/api/chat-sessions/${id}`),
-  create: (sessionData: any) => fetchApi<any>('/api/chat-sessions', {
-    method: 'POST',
-    body: JSON.stringify(sessionData),
-  }),
-  update: (id: string, sessionData: any) => fetchApi<any>(`/api/chat-sessions/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(sessionData),
-  }),
-  delete: (id: string) => fetchApi<void>(`/api/chat-sessions/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// Chat Message API
-export const chatMessageApi = {
-  getBySessionId: (sessionId: string) => fetchApi<any[]>(`/api/chat-messages?sessionId=${sessionId}`),
-  create: (messageData: any) => fetchApi<any>('/api/chat-messages', {
-    method: 'POST',
-    body: JSON.stringify(messageData),
-  }),
-};
-
-// API Token API
-export const apiTokenApi = {
-  getAll: () => fetchApi<any[]>('/api/tokens'),
-  getById: (id: string) => fetchApi<any>(`/api/tokens/${id}`),
-  create: (tokenData: any) => fetchApi<any>('/api/tokens', {
-    method: 'POST',
-    body: JSON.stringify(tokenData),
-  }),
-  update: (id: string, tokenData: any) => fetchApi<any>(`/api/tokens/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(tokenData),
-  }),
-  delete: (id: string) => fetchApi<void>(`/api/tokens/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// User Type API
-export const userTypeApi = {
-  getAll: () => fetchApi<any[]>('/api/user-types'),
-  getById: (id: string) => fetchApi<any>(`/api/user-types/${id}`),
-  create: (userTypeData: any) => fetchApi<any>('/api/user-types', {
-    method: 'POST',
-    body: JSON.stringify(userTypeData),
-  }),
-  update: (id: string, userTypeData: any) => fetchApi<any>(`/api/user-types/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(userTypeData),
-  }),
-  delete: (id: string) => fetchApi<void>(`/api/user-types/${id}`, {
-    method: 'DELETE',
-  }),
-};
 
 // For backward compatibility with existing code
 export const apiService = {
@@ -134,6 +24,17 @@ export const apiService = {
   chatMessages: chatMessageApi,
   apiTokens: apiTokenApi,
   userTypes: userTypeApi
+};
+
+// Re-export all individual API services for direct imports
+export {
+  userApi,
+  userTypeApi,
+  chatbotApi,
+  chatSessionApi,
+  chatMessageApi,
+  apiTokenApi,
+  API_ENDPOINTS
 };
 
 export default apiService;

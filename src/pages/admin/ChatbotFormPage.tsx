@@ -9,11 +9,10 @@ import {
   MessageSquare,
   Database,
   Smile,
-  Languages,
   Thermometer
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { simulateDbOperations } from '../../api/db';
+import { chatbotApi } from '../../api/apiService';
 
 const ChatbotFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +60,7 @@ const ChatbotFormPage: React.FC = () => {
       const fetchChatbot = async () => {
         try {
           setIsLoading(true);
-          const chatbot = await simulateDbOperations.getChatbotById(id);
+          const chatbot = await chatbotApi.getById(id);
           
           if (!chatbot) {
             setError('找不到指定的聊天機器人');
@@ -130,10 +129,10 @@ const ChatbotFormPage: React.FC = () => {
       
       if (id) {
         // Update existing chatbot
-        await simulateDbOperations.updateChatbot(id, chatbotData);
+        await chatbotApi.update(id, chatbotData);
       } else {
         // Create new chatbot
-        await simulateDbOperations.createChatbot(chatbotData);
+        await chatbotApi.create(chatbotData);
       }
       
       // Redirect to chatbot management page

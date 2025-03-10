@@ -6,7 +6,6 @@ import {
   Trash2, 
   Search, 
   AlertTriangle, 
-  Check, 
   X, 
   Eye, 
   EyeOff,
@@ -41,7 +40,8 @@ const TokenManagementPage: React.FC = () => {
     name: '',
     value: '',
     provider: 'openai' as 'openai' | 'deepseek' | 'other',
-    isActive: true
+    isActive: true,
+    user_id: ''
   });
   
   // Load tokens on component mount
@@ -92,7 +92,8 @@ const TokenManagementPage: React.FC = () => {
       name: '',
       value: '',
       provider: 'openai',
-      isActive: true
+      isActive: true,
+      user_id: user?.id || ''
     });
     setIsAddModalOpen(true);
   };
@@ -104,7 +105,8 @@ const TokenManagementPage: React.FC = () => {
       name: token.name,
       value: token.value,
       provider: token.provider,
-      isActive: token.isActive
+      isActive: token.isActive,
+      user_id: token.user_id || user?.id || ''
     });
     setIsEditModalOpen(true);
   };
@@ -150,7 +152,8 @@ const TokenManagementPage: React.FC = () => {
         value: formData.value,
         provider: formData.provider,
         isActive: formData.isActive,
-        lastUsed: undefined
+        lastUsed: undefined,
+        user_id: formData.user_id || user?.id
       });
       
       setTokens([...tokens, newToken]);
@@ -190,7 +193,8 @@ const TokenManagementPage: React.FC = () => {
         name: formData.name,
         value: formData.value || currentToken.value,
         provider: formData.provider,
-        isActive: formData.isActive
+        isActive: formData.isActive,
+        user_id: formData.user_id || user?.id
       });
       
       if (updatedToken) {
@@ -288,6 +292,9 @@ const TokenManagementPage: React.FC = () => {
                   提供者
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  使用者
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   使用狀況
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -344,6 +351,16 @@ const TokenManagementPage: React.FC = () => {
                       {token.provider === 'deepseek' && 'DeepSeek'}
                       {token.provider === 'other' && '其他'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {token.user_name || '未指定'}
+                    </div>
+                    {token.user_email && (
+                      <div className="text-xs text-gray-500">
+                        {token.user_email}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -458,6 +475,26 @@ const TokenManagementPage: React.FC = () => {
                     <option value="deepseek">DeepSeek</option>
                     <option value="other">其他</option>
                   </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-1">
+                    使用者 ID
+                  </label>
+                  <input
+                    type="text"
+                    id="user_id"
+                    name="user_id"
+                    value={formData.user_id || user?.id || ''}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="使用者 ID"
+                  />
+                  {user && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      當前使用者: {user.name} ({user.email})
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center">

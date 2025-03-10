@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .response {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #d9534f;
+        }
+        .success {
+            color: #5cb85c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jetty AI API Test Page</h1>
+    <p>Use this page to test the API endpoints and database connection for the Jetty AI Education Platform.</p>
+    
+    <div class="card">
+        <h2>Database Connection Test</h2>
+        <button id="testDbBtn">Test Database Connection</button>
+        <div id="dbTestResponse" class="response"></div>
+    </div>
+    
+    <div class="container">
+        <div>
+            <div class="card">
+                <h2>Users</h2>
+                
+                <h3>Get All Users</h3>
+                <button id="getAllUsersBtn">Get All Users</button>
+                <div id="getAllUsersResponse" class="response"></div>
+                
+                <h3>Get User by ID</h3>
+                <div class="form-group">
+                    <label for="getUserId">User ID:</label>
+                    <input type="text" id="getUserId" placeholder="Enter user ID">
+                </div>
+                <button id="getUserBtn">Get User</button>
+                <div id="getUserResponse" class="response"></div>
+                
+                <h3>Create User</h3>
+                <div class="form-group">
+                    <label for="createUserEmail">Email:</label>
+                    <input type="email" id="createUserEmail" placeholder="Enter email">
+                </div>
+                <div class="form-group">
+                    <label for="createUserName">Name:</label>
+                    <input type="text" id="createUserName" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label for="createUserPassword">Password:</label>
+                    <input type="password" id="createUserPassword" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                    <label for="createUserType">User Type:</label>
+                    <select id="createUserType">
+                        <option value="free">Free</option>
+                        <option value="premium">Premium</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button id="createUserBtn">Create User</button>
+                <div id="createUserResponse" class="response"></div>
+                
+                <h3>Update User</h3>
+                <div class="form-group">
+                    <label for="updateUserId">User ID:</label>
+                    <input type="text" id="updateUserId" placeholder="Enter user ID">
+                </div>
+                <div class="form-group">
+                    <label for="updateUserName">Name:</label>
+                    <input type="text" id="updateUserName" placeholder="Enter new name">
+                </div>
+                <div class="form-group">
+                    <label for="updateUserType">User Type:</label>
+                    <select id="updateUserType">
+                        <option value="free">Free</option>
+                        <option value="premium">Premium</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button id="updateUserBtn">Update User</button>
+                <div id="updateUserResponse" class="response"></div>
+                
+                <h3>Delete User</h3>
+                <div class="form-group">
+                    <label for="deleteUserId">User ID:</label>
+                    <input type="text" id="deleteUserId" placeholder="Enter user ID">
+                </div>
+                <button id="deleteUserBtn">Delete User</button>
+                <div id="deleteUserResponse" class="response"></div>
+            </div>
+        </div>
+        
+        <div>
+            <div class="card">
+                <h2>Chatbots</h2>
+                
+                <h3>Get All Chatbots</h3>
+                <button id="getAllChatbotsBtn">Get All Chatbots</button>
+                <div id="getAllChatbotsResponse" class="response"></div>
+                
+                <h3>Get Chatbot by ID</h3>
+                <div class="form-group">
+                    <label for="getChatbotId">Chatbot ID:</label>
+                    <input type="text" id="getChatbotId" placeholder="Enter chatbot ID">
+                </div>
+                <button id="getChatbotBtn">Get Chatbot</button>
+                <div id="getChatbotResponse" class="response"></div>
+                
+                <h3>Create Chatbot</h3>
+                <div class="form-group">
+                    <label for="createChatbotName">Name:</label>
+                    <input type="text" id="createChatbotName" placeholder="Enter chatbot name">
+                </div>
+                <div class="form-group">
+                    <label for="createChatbotModel">Model:</label>
+                    <input type="text" id="createChatbotModel" placeholder="Enter model (e.g., gpt-4)">
+                </div>
+                <div class="form-group">
+                    <label for="createChatbotProvider">Provider:</label>
+                    <select id="createChatbotProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="deepseek">DeepSeek</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createChatbotSystemPrompt">System Prompt:</label>
+                    <textarea id="createChatbotSystemPrompt" rows="3" placeholder="Enter system prompt"></textarea>
+                </div>
+                <button id="createChatbotBtn">Create Chatbot</button>
+                <div id="createChatbotResponse" class="response"></div>
+                
+                <h3>Update Chatbot</h3>
+                <div class="form-group">
+                    <label for="updateChatbotId">Chatbot ID:</label>
+                    <input type="text" id="updateChatbotId" placeholder="Enter chatbot ID">
+                </div>
+                <div class="form-group">
+                    <label for="updateChatbotName">Name:</label>
+                    <input type="text" id="updateChatbotName" placeholder="Enter new name">
+                </div>
+                <div class="form-group">
+                    <label for="updateChatbotSystemPrompt">System Prompt:</label>
+                    <textarea id="updateChatbotSystemPrompt" rows="3" placeholder="Enter new system prompt"></textarea>
+                </div>
+                <button id="updateChatbotBtn">Update Chatbot</button>
+                <div id="updateChatbotResponse" class="response"></div>
+                
+                <h3>Delete Chatbot</h3>
+                <div class="form-group">
+                    <label for="deleteChatbotId">Chatbot ID:</label>
+                    <input type="text" id="deleteChatbotId" placeholder="Enter chatbot ID">
+                </div>
+                <button id="deleteChatbotBtn">Delete Chatbot</button>
+                <div id="deleteChatbotResponse" class="response"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        
+        // Helper function to display API responses
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            
+            if (isError) {
+                element.classList.add('error');
+                element.textContent = `Error: ${data.message || data}`;
+            } else {
+                element.classList.remove('error');
+                element.classList.add('success');
+                element.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+        
+        // Helper function for API requests
+        async function apiRequest(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (data && (method === 'POST' || method === 'PUT')) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, options);
+                const responseData = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(responseData.message || `HTTP error! Status: ${response.status}`);
+                }
+                
+                return responseData;
+            } catch (error) {
+                console.error('API request failed:', error);
+                throw error;
+            }
+        }
+        
+        // Test database connection
+        document.getElementById('testDbBtn').addEventListener('click', async () => {
+            try {
+                const data = await apiRequest(`${API_BASE_URL}/test-db`);
+                displayResponse('dbTestResponse', data);
+            } catch (error) {
+                displayResponse('dbTestResponse', error, true);
+            }
+        });
+        
+        // User operations
+        document.getElementById('getAllUsersBtn').addEventListener('click', async () => {
+            try {
+                const data = await apiRequest(`${API_BASE_URL}/users`);
+                displayResponse('getAllUsersResponse', data);
+            } catch (error) {
+                displayResponse('getAllUsersResponse', error, true);
+            }
+        });
+        
+        document.getElementById('getUserBtn').addEventListener('click', async () => {
+            try {
+                const userId = document.getElementById('getUserId').value;
+                if (!userId) {
+                    throw new Error('User ID is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/users/${userId}`);
+                displayResponse('getUserResponse', data);
+            } catch (error) {
+                displayResponse('getUserResponse', error, true);
+            }
+        });
+        
+        document.getElementById('createUserBtn').addEventListener('click', async () => {
+            try {
+                const email = document.getElementById('createUserEmail').value;
+                const name = document.getElementById('createUserName').value;
+                const password = document.getElementById('createUserPassword').value;
+                const userType = document.getElementById('createUserType').value;
+                
+                if (!email || !name || !password) {
+                    throw new Error('Email, name, and password are required');
+                }
+                
+                const userData = {
+                    email,
+                    name,
+                    password_hash: password, // In a real app, this would be hashed on the server
+                    user_type: userType
+                };
+                
+                const data = await apiRequest(`${API_BASE_URL}/users`, 'POST', userData);
+                displayResponse('createUserResponse', data);
+            } catch (error) {
+                displayResponse('createUserResponse', error, true);
+            }
+        });
+        
+        document.getElementById('updateUserBtn').addEventListener('click', async () => {
+            try {
+                const userId = document.getElementById('updateUserId').value;
+                const name = document.getElementById('updateUserName').value;
+                const userType = document.getElementById('updateUserType').value;
+                
+                if (!userId) {
+                    throw new Error('User ID is required');
+                }
+                
+                const updates = {};
+                if (name) updates.name = name;
+                if (userType) updates.user_type = userType;
+                
+                if (Object.keys(updates).length === 0) {
+                    throw new Error('At least one field to update is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/users/${userId}`, 'PUT', updates);
+                displayResponse('updateUserResponse', data);
+            } catch (error) {
+                displayResponse('updateUserResponse', error, true);
+            }
+        });
+        
+        document.getElementById('deleteUserBtn').addEventListener('click', async () => {
+            try {
+                const userId = document.getElementById('deleteUserId').value;
+                
+                if (!userId) {
+                    throw new Error('User ID is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/users/${userId}`, 'DELETE');
+                displayResponse('deleteUserResponse', data);
+            } catch (error) {
+                displayResponse('deleteUserResponse', error, true);
+            }
+        });
+        
+        // Chatbot operations
+        document.getElementById('getAllChatbotsBtn').addEventListener('click', async () => {
+            try {
+                const data = await apiRequest(`${API_BASE_URL}/chatbots`);
+                displayResponse('getAllChatbotsResponse', data);
+            } catch (error) {
+                displayResponse('getAllChatbotsResponse', error, true);
+            }
+        });
+        
+        document.getElementById('getChatbotBtn').addEventListener('click', async () => {
+            try {
+                const chatbotId = document.getElementById('getChatbotId').value;
+                
+                if (!chatbotId) {
+                    throw new Error('Chatbot ID is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/chatbots/${chatbotId}`);
+                displayResponse('getChatbotResponse', data);
+            } catch (error) {
+                displayResponse('getChatbotResponse', error, true);
+            }
+        });
+        
+        document.getElementById('createChatbotBtn').addEventListener('click', async () => {
+            try {
+                const name = document.getElementById('createChatbotName').value;
+                const model = document.getElementById('createChatbotModel').value;
+                const provider = document.getElementById('createChatbotProvider').value;
+                const systemPrompt = document.getElementById('createChatbotSystemPrompt').value;
+                
+                if (!name || !model) {
+                    throw new Error('Name and model are required');
+                }
+                
+                const chatbotData = {
+                    name,
+                    model,
+                    provider,
+                    system_prompt: systemPrompt
+                };
+                
+                const data = await apiRequest(`${API_BASE_URL}/chatbots`, 'POST', chatbotData);
+                displayResponse('createChatbotResponse', data);
+            } catch (error) {
+                displayResponse('createChatbotResponse', error, true);
+            }
+        });
+        
+        document.getElementById('updateChatbotBtn').addEventListener('click', async () => {
+            try {
+                const chatbotId = document.getElementById('updateChatbotId').value;
+                const name = document.getElementById('updateChatbotName').value;
+                const systemPrompt = document.getElementById('updateChatbotSystemPrompt').value;
+                
+                if (!chatbotId) {
+                    throw new Error('Chatbot ID is required');
+                }
+                
+                const updates = {};
+                if (name) updates.name = name;
+                if (systemPrompt) updates.system_prompt = systemPrompt;
+                
+                if (Object.keys(updates).length === 0) {
+                    throw new Error('At least one field to update is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/chatbots/${chatbotId}`, 'PUT', updates);
+                displayResponse('updateChatbotResponse', data);
+            } catch (error) {
+                displayResponse('updateChatbotResponse', error, true);
+            }
+        });
+        
+        document.getElementById('deleteChatbotBtn').addEventListener('click', async () => {
+            try {
+                const chatbotId = document.getElementById('deleteChatbotId').value;
+                
+                if (!chatbotId) {
+                    throw new Error('Chatbot ID is required');
+                }
+                
+                const data = await apiRequest(`${API_BASE_URL}/chatbots/${chatbotId}`, 'DELETE');
+                displayResponse('deleteChatbotResponse', data);
+            } catch (error) {
+                displayResponse('deleteChatbotResponse', error, true);
+            }
+        });
+    </script>
+</body>
+</html>

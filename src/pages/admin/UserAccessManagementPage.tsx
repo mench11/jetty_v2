@@ -7,13 +7,12 @@ import {
   Edit, 
   Trash2, 
   AlertTriangle,
-  Bot,
   Calendar,
   Check,
   X
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { simulateDbOperations } from '../../api/db';
+import { chatbotApi, userApi } from '../../api/apiService';
 
 const UserAccessManagementPage: React.FC = () => {
   const { user } = useAppContext();
@@ -69,12 +68,17 @@ const UserAccessManagementPage: React.FC = () => {
         setIsLoading(true);
         
         // Fetch chatbots
-        const chatbotsData = await simulateDbOperations.getChatbots();
+        const chatbotsData = await chatbotApi.getAll();
         setChatbots(chatbotsData);
         
-        // In a real app, we would fetch users from the database
-        // For demo purposes, we're using mock data
-        setUsers(mockUsers);
+        // Fetch users from the API
+        try {
+          const usersData = await userApi.getAll();
+          setUsers(usersData.length > 0 ? usersData : mockUsers); // Fallback to mock data if API returns empty
+        } catch (error) {
+          console.error('Error fetching users, using mock data:', error);
+          setUsers(mockUsers);
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('無法載入數據，請稍後再試');
@@ -92,10 +96,16 @@ const UserAccessManagementPage: React.FC = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteUser = (id: string, name: string) => {
+  const handleDeleteUser = async (id: string, name: string) => {
     if (confirm(`確定要刪除用戶「${name}」嗎？此操作無法撤銷。`)) {
-      // In a real app, we would call an API to delete the user
-      setUsers(users.filter(user => user.id !== id));
+      try {
+        // Call the API to delete the user
+        await userApi.delete(id);
+        setUsers(users.filter(user => user.id !== id));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setError('刪除用戶時發生錯誤，請稍後再試');
+      }
     }
   };
 

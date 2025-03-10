@@ -12,7 +12,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { simulateDbOperations } from '../../api/db';
+import { chatbotApi } from '../../api/apiService';
 
 const ChatbotManagementPage: React.FC = () => {
   const { user } = useAppContext();
@@ -33,7 +33,7 @@ const ChatbotManagementPage: React.FC = () => {
     const fetchChatbots = async () => {
       try {
         setIsLoading(true);
-        const data = await simulateDbOperations.getChatbots();
+        const data = await chatbotApi.getAll();
         setChatbots(data);
       } catch (err) {
         console.error('Error fetching chatbots:', err);
@@ -49,7 +49,7 @@ const ChatbotManagementPage: React.FC = () => {
   const handleDeleteChatbot = async (id: string, name: string) => {
     if (confirm(`確定要刪除「${name}」聊天機器人嗎？此操作無法撤銷。`)) {
       try {
-        await simulateDbOperations.deleteChatbot(id);
+        await chatbotApi.delete(id);
         setChatbots(chatbots.filter(chatbot => chatbot.id !== id));
       } catch (err) {
         console.error('Error deleting chatbot:', err);
